@@ -1,10 +1,10 @@
-# Udacity Fullstack Nanodegree P2 Tournament Results
----
-### Description
+# Udacity Fullstack ND P2 Tournament Results
+
+## Description
 
 This project implements a Python module that uses the PostgreSQL database to keep track of players and matches in a game tournament. It has two parts: defining the database schema (SQL table definitions) in tournament.sql, and writing code that will use it to track a Swiss tournament in tournament.py.
 
-### How to Start
+## How to Start
 
 Test proper implementation by running some select tests against the DB:
 
