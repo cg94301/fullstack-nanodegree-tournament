@@ -51,7 +51,7 @@ def registerPlayer(name):
     pg = connect()
     c = pg.cursor()
     # Use RETURNING id to access the id of this last insert
-    c.execute("INSERT INTO players VALUES (%s,%s,%s) RETURNING id", (name,0,0))
+    c.execute("INSERT INTO players VALUES (%s) RETURNING id", (name,))
     pg.commit()
     id = c.fetchall()
     pg.close()
@@ -72,7 +72,8 @@ def playerStandings():
     """
     pg = connect()
     c = pg.cursor()
-    c.execute("SELECT players.id,players.name,players.wins,players.wins+players.losses as matches from players,scores where players.id = scores.id order by scores.score desc;")
+    #c.execute("SELECT players.id,players.name,players.wins,players.wins+players.losses as matches from players,scores where players.id = scores.id order by scores.score desc;")
+    c.execute("SELECT players.id,name,wcount,wcount+lcount from players,wincount,losscount where players.id = wincount.id and players.id = losscount.id order by wcount desc;")
     scores = c.fetchall()
     pg.close()
     return scores
@@ -87,8 +88,6 @@ def reportMatch(winner, loser):
     pg = connect()
     c = pg.cursor()
     c.execute("INSERT INTO matches VALUES (%s,%s)", (winner, loser))
-    c.execute("UPDATE players SET wins = wins + 1 WHERE id = %s", (winner,))
-    c.execute("UPDATE players SET losses = losses + 1 WHERE id = %s", (loser,))
     pg.commit()
     pg.close()
 
