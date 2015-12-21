@@ -23,7 +23,7 @@ class DB:
         """
         Executes SQL queries
         :param str sql_query_string: Contain the query string to be executed
-        :param str sql_sub: Contains any string subsitutions and is a tuple
+        :param tuple sql_sub: Contains any string subsitutions
         :param bool and_close: If true, closes the database connection after executing and commiting the SQL Query
         """
         cursor = self.cursor()
