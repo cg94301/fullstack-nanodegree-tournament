@@ -5,6 +5,40 @@
 
 import psycopg2
 
+class DB:
+    def __init__(self, db_con_str="dbname=tournament"):
+        """
+        Creates a database connection with the connection string provided
+        :param str db_con_str: Contains the database connection string, with a default value when no argument is passed to the parameter
+        """
+        self.conn = psycopg2.connect(db_con_str)
+
+    def cursor(self):
+        """
+        Returns the current cursor of the database
+        """
+        return self.conn.cursor()
+
+    def execute(self, sql_query_string, sql_sub, and_close=False):
+        """
+        Executes SQL queries
+        :param str sql_query_string: Contain the query string to be executed
+        :param str sql_sub: Contains any string subsitutions and is a tuple
+        :param bool and_close: If true, closes the database connection after executing and commiting the SQL Query
+        """
+        cursor = self.cursor()
+        cursor.execute(sql_query_string, sql_sub)
+        if and_close:
+            self.conn.commit()
+            self.close()
+        #return {"conn": self.conn, "cursor": cursor if not and_close else None}
+        return (self.conn, cursor if not and_close else None)
+
+    def close(self):
+        """
+        Closes the current database connection
+        """
+        return self.conn.close()
 
 def connect():
     """Connect to the PostgreSQL database.  Returns a database connection."""
@@ -13,28 +47,34 @@ def connect():
 
 def deleteMatches():
     """Remove all the match records from the database."""
-    pg = connect()
-    c = pg.cursor()
-    c.execute("DELETE FROM matches")
-    pg.commit()
-    pg.close()
+    DB().execute("DELETE FROM matches", None, True)
+    #pg = connect()
+    #c = pg.cursor()
+    #c.execute("DELETE FROM matches")
+    #pg.commit()
+    #pg.close()
 
 def deletePlayers():
     """Remove all the player records from the database."""
-    pg = connect()
-    c = pg.cursor()
-    c.execute("DELETE FROM players")
-    pg.commit()
-    pg.close()
+    DB().execute("DELETE FROM players", None, True)
+    #pg = connect()
+    #c = pg.cursor()
+    #c.execute("DELETE FROM players")
+    #pg.commit()
+    #pg.close()
 
 def countPlayers():
     """Returns the number of players currently registered."""
-    pg = connect()
-    c = pg.cursor()
-    c.execute("SELECT count(id) FROM players")
-    count = c.fetchall()
-    pg.close()
-    return count[0][0]
+    (db,c) = DB().execute("SELECT count(*) FROM players", None)
+    cursor = c.fetchone()
+    db.close()
+    return cursor[0]
+    #pg = connect()
+    #c = pg.cursor()
+    #c.execute("SELECT count(id) FROM players")
+    #count = c.fetchone()
+    #pg.close()
+    #return count[0]
 
 def registerPlayer(name):
     """Adds a player to the tournament database.
@@ -48,14 +88,20 @@ def registerPlayer(name):
     Returns:
       The ID of the just created player. 
     """
-    pg = connect()
-    c = pg.cursor()
+    (db,c) = DB().execute("INSERT INTO players VALUES (%s) RETURNING id", (name,))
+    db.commit()
+    id = c.fetchone()
+    db.close()
+    return id[0]
+
+    #pg = connect()
+    #c = pg.cursor()
     # Use RETURNING id to access the id of this last insert
-    c.execute("INSERT INTO players VALUES (%s) RETURNING id", (name,))
-    pg.commit()
-    id = c.fetchall()
-    pg.close()
-    return id[0][0]
+    #c.execute("INSERT INTO players VALUES (%s) RETURNING id", (name,))
+    #pg.commit()
+    #id = c.fetchall()
+    #pg.close()
+    #return id[0][0]
 
 def playerStandings():
     """Returns a list of the players and their win records, sorted by wins.
@@ -70,13 +116,18 @@ def playerStandings():
         wins: the number of matches the player has won
         matches: the number of matches the player has played
     """
-    pg = connect()
-    c = pg.cursor()
-    #c.execute("SELECT players.id,players.name,players.wins,players.wins+players.losses as matches from players,scores where players.id = scores.id order by scores.score desc;")
-    c.execute("SELECT players.id,name,wcount,wcount+lcount from players,wincount,losscount where players.id = wincount.id and players.id = losscount.id order by wcount desc;")
+    (db,c) = DB().execute("SELECT players.id,name,wcount,wcount+lcount from players,wincount,losscount where players.id = wincount.id and players.id = losscount.id order by wcount desc;",None)
     scores = c.fetchall()
-    pg.close()
+    db.close()
     return scores
+
+    #pg = connect()
+    #c = pg.cursor()
+    #c.execute("SELECT players.id,players.name,players.wins,players.wins+players.losses as matches from players,scores where players.id = scores.id order by scores.score desc;")
+    #c.execute("SELECT players.id,name,wcount,wcount+lcount from players,wincount,losscount where players.id = wincount.id and players.id = losscount.id order by wcount desc;")
+    #scores = c.fetchall()
+    #pg.close()
+    #return scores
 
 def reportMatch(winner, loser):
     """Records the outcome of a single match between two players.
@@ -85,11 +136,12 @@ def reportMatch(winner, loser):
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
     """
-    pg = connect()
-    c = pg.cursor()
-    c.execute("INSERT INTO matches VALUES (%s,%s)", (winner, loser))
-    pg.commit()
-    pg.close()
+    (db,c) = DB().execute("INSERT INTO matches VALUES (%s,%s)", (winner, loser), True)
+    #pg = connect()
+    #c = pg.cursor()
+    #c.execute("INSERT INTO matches VALUES (%s,%s)", (winner, loser))
+    #pg.commit()
+    #pg.close()
 
 def swissPairings():
     """Returns a list of pairs of players for the next round of a match.
